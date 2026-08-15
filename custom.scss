@@ -1,0 +1,85 @@
+/*-- scss:defaults --*/
+
+// 1. IMPORTAR FUENTES DE GOOGLE
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@300;400;600&display=swap');
+
+// 2. DEFINIR PALETA DE COLORES
+$body-bg: #FFF9F8;          // Crema suave de fondo
+$body-color: #2D2926;       // Texto en carbón oscuro
+$heading-color: #9B4D4D;    // Títulos en rosa profundo/terracota
+$link-color: #9B4D4D;       // Enlaces
+$selection-bg: #E2B4B4;     // Color al resaltar texto
+
+// 3. TIPOGRAFÍAS
+$font-family-sans-serif: 'Montserrat', sans-serif;
+$presentation-heading-font: 'Playfair Display', serif;
+$presentation-heading-font-weight: 700;
+
+/*-- scss:rules --*/
+
+/*-- scss:rules --*/
+
+// Forzar el tamaño del título principal (H1)
+.reveal .slides h1 {
+  font-size: 70px !important;     /* Prueba con 60px. Si sigue grande, baja a 50px */
+  line-height: 1.1 !important;    /* Para que las líneas no estén tan separadas */
+  text-align: left !important;    /* Alineación a la izquierda */
+  margin-bottom: 20px !important;
+  word-wrap: break-word;          /* Evita que las palabras se salgan */
+}
+
+// Si quieres que el subtítulo "MODELOS DE DEEP LEARNING" 
+// también esté alineado a la izquierda sin fallos:
+.reveal .slides .subtitle-manual {
+  text-align: left !important;
+  font-size: 0.6em;
+  color: #2D2926;
+  margin-bottom: 30px;
+  letter-spacing: 2px;
+  display: block; /* Asegura que se comporte como bloque para alinear */
+}
+// Ajuste para que los nombres de los integrantes no queden tan grandes
+.reveal .columns .column {
+  font-size: 0.85em;
+  line-height: 1.4;
+}
+
+// Estilo para el título de la diapositiva
+.reveal .slides h2 {
+  border-bottom: 2px solid rgba(155, 77, 77, 0.2);
+  padding-bottom: 10px;
+  text-transform: none;
+}
+
+// Estilo para enfatizar texto importante
+.reveal .slides strong {
+  color: #9B4D4D;
+  font-weight: 600;
+}
+
+// Personalizar el pie de página
+.reveal .footer {
+  color: #9B4D4D;
+  font-size: 0.5em;
+  opacity: 0.6;
+}
+
+// Decoración de fondo (opcional: una línea sutil al fondo de cada slide)
+.reveal .slides {
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -10%;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #9B4D4D 0%, #E2B4B4 100%);
+  }
+}
+
+// Justificar el texto en párrafos y listas
+.reveal .slides p,
+.reveal .slides li {
+  text-align: justify;
+  font-size: 0.90em; // <-- AGREGA ESTA LÍNEA (1em es el normal, 0.85em es un 15% más pequeño)
+}

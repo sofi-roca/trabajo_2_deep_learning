@@ -1,0 +1,297 @@
+---
+pagetitle: "Clasificación de la Fase del Ciclo Menstrual"
+format:
+  revealjs:
+    theme: [default, custom.scss]
+    self-contained: true
+    logo: logo.png
+# Esto desactiva la portada automática para que no se duplique
+title-slide-attributes:
+  data-state: "hide-title-slide"
+bibliography: referencias.bib
+csl: "https://raw.githubusercontent.com/citation-style-language/styles/master/ieee.csl"
+---
+
+# Ciclo menstrual: Clasificación de las fases mediante Deep Learning
+
+::: {style="font-size: 0.6em; color: #2D2926; margin-bottom: 30px; letter-spacing: 2px; text-align: center;"}
+MODELOS DE DEEP LEARNING
+:::
+
+::::: columns
+::: {.column width="50%" style="text-align: center;"}
+**Integrantes:** <br> Sofía Roca Contreras <br> Bianca Bruna Ramírez
+:::
+
+::: {.column width="50%" style="text-align: center;"}
+**Profesor:** <br> Francisco Plaza-Vega
+:::
+:::::
+
+::: {style="margin-top: 40px; font-size: 0.55em; color: #9B4D4D; text-align: center;"}
+Universidad de Santiago de Chile
+:::
+
+# Objetivos
+
+## Objetivos {.smaller}
+
+**Objetivo general:** Desarrollar y evaluar un modelo secuencial para clasificar las fases del ciclo menstrual en usuarias con patrones regulares e irregulares.
+
+**Objetivos específicos:**
+
+- Definir y construir las secuencias temporales y sus respectivas etiquetas.
+
+– Implementar modelos LSTM y CNN 1D para la clasificación de las fases.
+
+– Comparar su desempeño con un modelo tradicional mediante macro F1-score y métricas por fase.
+
+# Descripción de los datos
+
+## Descripción de los datos {.smaller}
+
+**Base de datos** de 80 variables y 1.665 observaciones extraída de [Kaggle](https://www.kaggle.com/datasets/nikitabisht/menstrual-cycle-data)
+
+Registros de ciclos menstruales de 159 personas.
+
+::: {style="font-size: 52%;"}
+| Variables | Descripción | Tipo |
+|:------------------:|:------------------:|:------------------:|
+| id | Identificador único de la usuaria | Texto |
+| numero_ciclo | Número secuencial del ciclo registrado para esa usuaria | Entero |
+| edad | Edad de la usuaria | Entero |
+| imc | Índice de Masa Corporal (IMC) | Decimal |
+| duracion_ciclo | Duración total del ciclo en días. | Entero |
+| promedio_duracion_ciclo | Promedio de duración de los ciclos de la usuaria | Entero |
+| duracion_menstruacion | Duración del periodo menstrual (días de sangrado) | Entero |
+| promedio_duracion_menstruacion | Promedio de duración de la menstruación | Decimal |
+| intensidad_sangrado_media | Intensidad promedio de sangrado | Decimal |
+| primer_dia_alta_fertilidad | Primer día de niveles "altos" de fertilidad detectados | Entero |
+| total_dias_alta_fertilidad | Cantidad total de días con fertilidad alta | Entero |
+| total_dias_peak_fertilidad | Cantidad de días en el nivel máximo (Peak) de fertilidad | Entero |
+| dia_estimado_ovulacion | Día estimado de la ovulación dentro del ciclo | Entero |
+| duracion_fase_lutea | Duración de la fase lútea (post-ovulación) | Entero |
+:::
+
+## Visualización {.smaller}
+
+::: {style="font-size: 45%; overflow-x: auto;"}
+```{r}
+library(dplyr)
+library(DT)
+setwd("C:/Users/sofir/OneDrive/Escritorio/Universidad/Deep learning/Presentación 2")
+data = read.csv("FedCycleData071012 (2).csv")
+
+data = data %>%
+  select(ClientID, CycleNumber, Age, BMI, LengthofCycle, MeanCycleLength, LengthofMenses,
+         MeanMensesLength, MeanBleedingIntensity, FirstDayofHigh, TotalNumberofHighDays,
+         TotalNumberofPeakDays, EstimatedDayofOvulation, LengthofLutealPhase) %>%
+  rename(id                         = ClientID,
+         numero_ciclo               = CycleNumber,
+         edad                       = Age,
+         imc                        = BMI,
+         duracion_ciclo             = LengthofCycle,
+         promedio_duracion_ciclo    = MeanCycleLength,
+         duracion_menstruacion      = LengthofMenses,
+         promedio_duracion_menstruacion   = MeanMensesLength,
+         intensidad_sangrado_media  = MeanBleedingIntensity,
+         primer_dia_alta_fertilidad            = FirstDayofHigh,
+         total_dias_alta_fertilidad           = TotalNumberofHighDays,
+         total_dias_peak_fertilidad            = TotalNumberofPeakDays,
+         dia_estimado_ovulacion     = EstimatedDayofOvulation,
+         duracion_fase_lutea        = LengthofLutealPhase)
+
+datatable(data, options = list(
+  scrollX = TRUE,
+  columnDefs = list(list(className = 'dt-center', targets = "_all"))
+))
+```
+:::
+
+# Análisis exploratorio e imputación
+
+## Tratamiento de valores faltantes {.smaller}
+
+::: {.panel-tabset}
+### Código en R
+```{r}
+#| eval: false
+#| echo: true
+
+library(tidyr)
+library(mice)
+
+setwd("C:/Users/sofir/OneDrive/Escritorio/Universidad/Deep learning/Presentación 2")
+data = read.csv("FedCycleData071012 (2).csv")
+
+df_filter = data %>%
+  select(ClientID, CycleNumber, Age, BMI, LengthofCycle, MeanCycleLength, LengthofMenses,
+         MeanMensesLength, MeanBleedingIntensity, FirstDayofHigh, TotalNumberofHighDays,
+         TotalNumberofPeakDays, EstimatedDayofOvulation, LengthofLutealPhase) %>%
+
+# --- PRIMERA FASE: Agrupado por paciente ---
+  group_by(ClientID) %>%
+  fill(Age, BMI, MeanCycleLength, MeanMensesLength, MeanBleedingIntensity, .direction = "downup") %>%
+  mutate(MeanCycleLength = mean(LengthofCycle, na.rm = TRUE),
+         MeanMensesLength = mean(LengthofMenses, na.rm = TRUE),
+         # Imputación local (usando la mediana de la propia paciente)
+         FirstDayofHigh = ifelse(is.na(FirstDayofHigh), median(FirstDayofHigh, na.rm = TRUE), FirstDayofHigh),
+         TotalNumberofPeakDays = ifelse(is.na(TotalNumberofPeakDays), median(TotalNumberofPeakDays, na.rm = TRUE), TotalNumberofPeakDays),
+         EstimatedDayofOvulation = ifelse(is.na(EstimatedDayofOvulation), median(EstimatedDayofOvulation, na.rm = TRUE), EstimatedDayofOvulation),
+         LengthofLutealPhase = ifelse(is.na(LengthofLutealPhase), median(LengthofLutealPhase, na.rm = TRUE), LengthofLutealPhase)) %>%
+  # --- SEGUNDA FASE: Tratamiento global ---
+  ungroup() %>%
+  mutate(
+    MeanBleedingIntensity = ifelse(is.na(MeanBleedingIntensity), 
+                                   median(MeanBleedingIntensity, na.rm = TRUE), 
+                                   MeanBleedingIntensity)
+  )
+
+df_pacientes <- df_filter %>%
+  group_by(ClientID) %>%
+  summarise(
+    Age = first(Age),
+    BMI = first(BMI),
+    MeanBleedingIntensity = first(MeanBleedingIntensity),
+    # Le pasamos los promedios al algoritmo para que haga mejores predicciones
+    MeanCycleLength = first(MeanCycleLength), 
+    MeanMensesLength = first(MeanMensesLength)
+  ) %>%
+  ungroup()
+
+datos_para_imputar <- df_pacientes %>% select(-ClientID)
+imputacion <- mice(datos_para_imputar, m = 1, method = "pmm", seed = 123, printFlag = FALSE)
+
+# Extraemos la base de pacientes ya rellenada
+pacientes_imputados <- complete(imputacion)
+
+# Devolvemos el ClientID a la tabla limpia
+df_pacientes_limpio <- bind_cols(ClientID = df_pacientes$ClientID, pacientes_imputados)
+
+# 4. FASE 3: Reconstruir la base final uniendo los datos perfectos
+df_final <- df_filter %>%
+  # Quitamos las columnas originales que aún tenían NA
+  select(-Age, -BMI, -MeanBleedingIntensity) %>%
+  # Pegamos las columnas corregidas asegurando que coincidan por ClientID
+  left_join(df_pacientes_limpio %>% select(ClientID, Age, BMI, MeanBleedingIntensity), by = "ClientID")
+
+df_final <- df_final %>% 
+  rename(id                         = ClientID,
+         numero_ciclo               = CycleNumber,
+         edad                       = Age,
+         imc                        = BMI,
+         duracion_ciclo             = LengthofCycle,
+         promedio_duracion_ciclo    = MeanCycleLength,
+         duracion_menstruacion      = LengthofMenses,
+         promedio_duracion_menstruacion   = MeanMensesLength,
+         intensidad_sangrado_media  = MeanBleedingIntensity,
+         primer_dia_alta_fertilidad            = FirstDayofHigh,
+         total_dias_alta_fertilidad           = TotalNumberofHighDays,
+         total_dias_peak_fertilidad            = TotalNumberofPeakDays,
+         dia_estimado_ovulacion     = EstimatedDayofOvulation,
+         duracion_fase_lutea        = LengthofLutealPhase)
+```
+
+### Resultado
+::: {style="font-size: 45%; overflow-x: auto;"}
+```{r}
+#| eval: true
+#| echo: false
+
+library(tidyr)
+library(mice)
+
+setwd("C:/Users/sofir/OneDrive/Escritorio/Universidad/Deep learning/Presentación 2")
+data = read.csv("FedCycleData071012 (2).csv")
+
+df_filter = data %>%
+  select(ClientID, CycleNumber, Age, BMI, LengthofCycle, MeanCycleLength, LengthofMenses,
+         MeanMensesLength, MeanBleedingIntensity, FirstDayofHigh, TotalNumberofHighDays,
+         TotalNumberofPeakDays, EstimatedDayofOvulation, LengthofLutealPhase) %>%
+
+# --- PRIMERA FASE: Agrupado por paciente ---
+  group_by(ClientID) %>%
+  fill(Age, BMI, MeanCycleLength, MeanMensesLength, MeanBleedingIntensity, .direction = "downup") %>%
+  mutate(MeanCycleLength = mean(LengthofCycle, na.rm = TRUE),
+         MeanMensesLength = mean(LengthofMenses, na.rm = TRUE),
+         # Imputación local (usando la mediana de la propia paciente)
+         FirstDayofHigh = ifelse(is.na(FirstDayofHigh), median(FirstDayofHigh, na.rm = TRUE), FirstDayofHigh),
+         TotalNumberofPeakDays = ifelse(is.na(TotalNumberofPeakDays), median(TotalNumberofPeakDays, na.rm = TRUE), TotalNumberofPeakDays),
+         EstimatedDayofOvulation = ifelse(is.na(EstimatedDayofOvulation), median(EstimatedDayofOvulation, na.rm = TRUE), EstimatedDayofOvulation),
+         LengthofLutealPhase = ifelse(is.na(LengthofLutealPhase), median(LengthofLutealPhase, na.rm = TRUE), LengthofLutealPhase)) %>%
+  # --- SEGUNDA FASE: Tratamiento global ---
+  ungroup() %>%
+  mutate(
+    MeanBleedingIntensity = ifelse(is.na(MeanBleedingIntensity), 
+                                   median(MeanBleedingIntensity, na.rm = TRUE), 
+                                   MeanBleedingIntensity)
+  )
+
+df_pacientes <- df_filter %>%
+  group_by(ClientID) %>%
+  summarise(
+    Age = first(Age),
+    BMI = first(BMI),
+    MeanBleedingIntensity = first(MeanBleedingIntensity),
+    # Le pasamos los promedios al algoritmo para que haga mejores predicciones
+    MeanCycleLength = first(MeanCycleLength), 
+    MeanMensesLength = first(MeanMensesLength)
+  ) %>%
+  ungroup()
+
+datos_para_imputar <- df_pacientes %>% select(-ClientID)
+imputacion <- mice(datos_para_imputar, m = 1, method = "pmm", seed = 123, printFlag = FALSE)
+
+# Extraemos la base de pacientes ya rellenada
+pacientes_imputados <- complete(imputacion)
+
+# Devolvemos el ClientID a la tabla limpia
+df_pacientes_limpio <- bind_cols(ClientID = df_pacientes$ClientID, pacientes_imputados)
+
+# 4. FASE 3: Reconstruir la base final uniendo los datos perfectos
+df_final <- df_filter %>%
+  # Quitamos las columnas originales que aún tenían NA
+  select(-Age, -BMI, -MeanBleedingIntensity) %>%
+  # Pegamos las columnas corregidas asegurando que coincidan por ClientID
+  left_join(df_pacientes_limpio %>% select(ClientID, Age, BMI, MeanBleedingIntensity), by = "ClientID")
+
+df_final <- df_final %>% 
+  rename(id                         = ClientID,
+         numero_ciclo               = CycleNumber,
+         edad                       = Age,
+         imc                        = BMI,
+         duracion_ciclo             = LengthofCycle,
+         promedio_duracion_ciclo    = MeanCycleLength,
+         duracion_menstruacion      = LengthofMenses,
+         promedio_duracion_menstruacion   = MeanMensesLength,
+         intensidad_sangrado_media  = MeanBleedingIntensity,
+         primer_dia_alta_fertilidad            = FirstDayofHigh,
+         total_dias_alta_fertilidad           = TotalNumberofHighDays,
+         total_dias_peak_fertilidad            = TotalNumberofPeakDays,
+         dia_estimado_ovulacion     = EstimatedDayofOvulation,
+         duracion_fase_lutea        = LengthofLutealPhase)
+
+datatable(df_final, options = list(
+  scrollX = TRUE,
+  columnDefs = list(list(className = 'dt-center', targets = "_all"))
+))
+```
+:::
+
+:::
+
+# Estado del arte
+
+# Metodología
+
+# Descripción y justificación de la arquitectura
+
+# Implementación
+
+# Configuración del entrenamiento de la red
+
+# Validación, resultados y comparación
+
+# Conclusiones, limitaciones y trabajos futuros
+
+
