@@ -40,7 +40,7 @@ Universidad de Santiago de Chile
 
 - Definir y construir las secuencia temporales y sus respectivas etiquetas.
 
-- Implementar modelos LSTM y CNN 1D para la clasifación de las fases.
+- Implementar modelos LSTM y CNN 1D para la clasifación de las fases del ciclo menstrual.
 
 - Comparar su desempeño con un modelo tradicional mediante F1-Score y métricas por fase.
 
@@ -111,9 +111,9 @@ datatable(data, options = list(
 :::: panel-tabset
 ### Imputación
 
-1.  Relleno secuencial (**Forward fill**): edad, imc, promedio_duracion_ciclo, promedio_duracion_menstruacion, intensidad_sangrado_media.
+1.  Relleno secuencial (**Forward fill**) [@logapriya2024optimized]: edad, imc, promedio_duracion_ciclo, promedio_duracion_menstruacion, intensidad_sangrado_media.
 
-2.  Imputación local (**Media y mediana historica**): promedio_duracion_ciclo (se recalcula con duracion_ciclo), promedio_duracion_menstruacion (se recalcula con duracion_menstruacion).
+2.  Imputación local (**Media y mediana historica**) [@khairunisa2025comparison]: promedio_duracion_ciclo (se recalcula con duracion_ciclo), promedio_duracion_menstruacion (se recalcula con duracion_menstruacion).
 
 3.  Imputación global (**Media global**): intensidad_sangrado_media, duracion_menstruacion, duracion_ciclo, primer_dia_alta_fertilidad, total_dias_alta_fertilidad, total_dias_peak_fertilidad, dia_estimado_ovulacion, duracion_fase_lutea.
 
@@ -340,11 +340,10 @@ grafico_desbalance <- ggplot(df_resumen_clases, aes(x = nombre_clase, y = cantid
   scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
   
   labs(
-    title = "Desbalance Fisiológico de Clases",
+    title = "Desbalance de Clases",
     subtitle = "Distribución del total de días registrados según la fase del ciclo",
     x = NULL, # Ocultamos la etiqueta X para que sea más limpio
-    y = "Número Total de Días",
-    caption = "Evidencia de desbalance extremo: La clase minoritaria requiere estrategias de Oversampling."
+    y = "Número Total de Días"
   ) +
   # Tema personalizado basado en tu archivo SCSS
   theme_minimal(base_family = "sans") + 
@@ -420,36 +419,65 @@ LONGITUD_VENTANA <- 7
 dia_fin_ventana <- max(ejemplo_ciclo$dia_ciclo[ejemplo_ciclo$etapa_target == 0], na.rm = TRUE)
 dia_inicio_ventana <- dia_fin_ventana - LONGITUD_VENTANA + 1
 
-# Generamos el gráfico
+# Generamos el gráfico con la estética SCSS
 grafico_evolucion <- ggplot(ejemplo_ciclo, aes(x = dia_ciclo, y = 1, fill = Fase)) +
   geom_tile(color = "white", linewidth = 1, height = 0.5) +
-  scale_fill_manual(values = c("Folicular / Menstrual" = "#B4C6E7", 
-                               "Ventana Ovulatoria"  = "#FFC000", 
-                               "Fase Lútea"          = "#C6E0B4")) +
+  
+  # 1. Ajuste de paleta al estilo SCSS
+  scale_fill_manual(values = c(
+    "Folicular / Menstrual" = "#E2B4B4",  
+    "Ventana Ovulatoria"  = "#9B4D4D",  # Color principal destacado
+    "Fase Lútea"          = "#D5A5A5"   # Tono intermedio
+  )) +
   scale_x_continuous(breaks = seq(1, max(ejemplo_ciclo$LengthofCycle), by = 1)) +
+  
+  # 2. Ajuste de anotaciones (Cambiamos el rojo puro por el color de texto del theme)
   annotate("rect", 
            xmin = dia_inicio_ventana - 0.5, 
            xmax = dia_fin_ventana + 0.5, 
            ymin = 0.65, ymax = 1.35,
-           color = "red", fill = NA, linewidth = 1.2, linetype = "dashed") +
+           color = "#2D2926", fill = NA, linewidth = 1.2, linetype = "dashed") +
   annotate("text", x = dia_inicio_ventana + (LONGITUD_VENTANA/2) - 0.5, y = 1.45, 
            label = paste("Ventana de Contexto (L =", LONGITUD_VENTANA, ")"), 
-           color = "red", fontface = "bold") +
+           color = "#2D2926", fontface = "bold") +
+  
   labs(
-    title = paste("Progresión del Ciclo y Ventana Deslizante (Paciente:", ejemplo_id, ")"),
-    subtitle = "Lo que la red LSTM 've' para intentar predecir el día siguiente",
+    title = paste(" Ciclo y Ventana Deslizante (Paciente:", ejemplo_id, ")"),
     x = "Día del Ciclo",
-    y = "",
+    y = NULL,
     fill = "Clase Objetivo (Target)"
   ) +
-  theme_minimal() +
+  
+  # 3. Aplicación del tema personalizado SCSS
+  theme_minimal(base_family = "sans") + 
   theme(
+    # Aplicar el color de fondo crema ($body-bg)
+    plot.background = element_rect(fill = "#FFF9F8", color = NA),  
+    panel.background = element_rect(fill = "#FFF9F8", color = NA),
+    
+    # Títulos con el color principal ($heading-color)
+    plot.title = element_text(color = "#9B4D4D", face = "bold", size = 18, margin = margin(b = 10)), 
+    plot.subtitle = element_text(color = "#2D2926", size = 13, margin = margin(b = 20)),
+    
+    # Ejes con el color de texto ($body-color)
+    axis.title.x = element_text(color = "#2D2926", face = "bold", size = 12, margin = margin(t = 10)),
+    axis.text.x = element_text(color = "#2D2926", size = 11, face = "bold"),
+    
+    # Ocultar eje Y como en tu código original
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
-    panel.grid.major.y = element_blank(),
+    axis.title.y = element_blank(),
+    
+    # Leyenda adaptada al theme
+    legend.position = "bottom",
+    legend.title = element_text(color = "#2D2926", face = "bold", size = 11),
+    legend.text = element_text(color = "#2D2926", size = 10),
+    legend.background = element_rect(fill = "#FFF9F8", color = NA),
+    
+    # Limpieza de cuadrículas
+    panel.grid.major.y = element_blank(), 
     panel.grid.minor = element_blank(),
-    plot.title = element_text(face = "bold"),
-    legend.position = "bottom"
+    panel.grid.major.x = element_line(color = alpha("#2D2926", 0.1))
   )
 
 print(grafico_evolucion)
@@ -459,11 +487,7 @@ print(grafico_evolucion)
 
 ## Metodología {.smaller}
 
-* **Transformación a Tensor 3D**: Definir longitud de ventana $L = 7$ días y desplazamiento de 1 día (stride = 1).
-
-* **Split por Usuaria**: La división 80% Traint / 20% Test se realiza estrictamente a nivel de ***id***.
-
-* **Desbalance de clases**: La clase 1 (ovulación) es minoritaria (~3 días por ciclo). Se aplica **oversampling aleatorio** únicamente sobre el conjunto de entrenamiento.
+![Esquema metodológico](esquema.png){#fig-etiqueta fig-align="center"}
 
 ## Red híbrida CNN-1D y LSTM {.smaller}
 
@@ -500,7 +524,11 @@ model = keras_model_sequential(
 | **Épocas Máximas**     | 60 épocas                  |
 | **Plataforma**         | TensorFlow / Keras 3       |
 | **Hardware**           | CPU estándar               |
-| **Tiempo de cómputo**  | Aprox. 1-2 min.            |
+| **Tiempo de cómputo**  | 1-2 min. Aprox.            |
+
+## Entrenamiento de la red {.smaller}
+
+![Entrenamiento](entrenamiento.png){#fig-etiqueta fig-align="center"}
 
 # Validación, resultados y comparación
 
