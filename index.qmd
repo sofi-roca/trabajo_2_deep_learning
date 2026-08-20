@@ -67,7 +67,7 @@ Universidad de Santiago de Chile
 
 - Definir y construir las secuencia temporales y sus respectivas etiquetas.
 
-- Implementar modelos LSTM y CNN 1D para la clasifación de las fases del ciclo menstrual.
+- Implementar modelos LSTM y CNN 1D para la clasificación de las fases del ciclo menstrual.
 
 - Comparar su desempeño con un modelo tradicional mediante F1-Score y métricas por fase.
 
@@ -146,9 +146,9 @@ datatable(data, options = list(
 
 2.  Imputación local (**Media y mediana historica**) [@khairunisa2025comparison]: promedio_duracion_ciclo (se recalcula con duracion_ciclo), promedio_duracion_menstruacion (se recalcula con duracion_menstruacion).
 
-3.  Imputación global (**Media global**) [@logapriya2024optimized]: intensidad_sangrado_media, duracion_menstruacion, duracion_ciclo, primer_dia_alta_fertilidad, total_dias_alta_fertilidad, total_dias_peak_fertilidad, dia_estimado_ovulacion, duracion_fase_lutea.
+3.  Algoritmo Predictivo Multivariado (**MICE - Predictive Mean Matching**) [@van2011mice]: edad, imc, intensidad_sangrado_media, promedio_duracion_menstruacion, promedio_duracion_ciclo.
 
-4.  Algoritmo Predictivo Multivariado (**MICE - Predictive Mean Matching**) [@van2011mice]: edad, imc, intensidad_sangrado_media, promedio_duracion_menstruacion, promedio_duracion_ciclo.
+4.  Imputación global (**Media global**) [@logapriya2024optimized]: intensidad_sangrado_media, duracion_menstruacion, duracion_ciclo, primer_dia_alta_fertilidad, total_dias_alta_fertilidad, total_dias_peak_fertilidad, dia_estimado_ovulacion, duracion_fase_lutea.
 
 ### Resultado
 
@@ -594,7 +594,7 @@ Al evaluar el desempeño, contrastamos nuestra arquitectura con métodos tradici
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Random Forest (Nuestro Baseline)** | Tradicional | **87.2%** | 92.0% | 37.1% | **92.1%** | **73.7%** |
 | **LSTM**  | [@harshavardhan2025ai] | 90% | - | -  | - | 89% |
-| **CNN 1D** | [@khairunisa2025comparison] | 87.5% | -  | - | 87.5% |  |
+| **CNN 1D** | [@khairunisa2025comparison] | 87.5% | -  | - | - | 87.5% |
 | **Nuestra Red Híbrida (CNN 1D + LSTM)** | **Propuesto** | 84.0% | **91.3%** | **50.7%** | 89.2% | **77.1%** |
 :::
 
