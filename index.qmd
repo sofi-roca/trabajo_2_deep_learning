@@ -9,10 +9,10 @@ format:
 title-slide-attributes:
   data-state: "hide-title-slide"
 bibliography: referencias.bib
-csl: "https://raw.githubusercontent.com/citation-style-language/styles/master/ieee.csl"
+csl: "https://raw.githubusercontent.com/citation-style-language/styles/master/apa.csl"
 ---
 
-# Ciclo menstrual: Clasificación de las fases mediante Deep Learning
+# Clasificación de Fases del Ciclo Menstrual mediante Redes Híbridas CNN-LSTM en Series Temporales
 
 ::: {style="font-size: 0.6em; color: #2D2926; margin-bottom: 30px; letter-spacing: 2px; text-align: center;"}
 MODELOS DE DEEP LEARNING
@@ -20,7 +20,7 @@ MODELOS DE DEEP LEARNING
 
 ::::: columns
 ::: {.column width="50%" style="text-align: center;"}
-**Integrantes:** <br> Sofía Roca Contreras <br> Bianca Bruna Ramírez
+**Integrantes:** <br> Sofía Roca Contreras <br> Bianca Bruna Ramírez <br> **Grupo:** <br> DeepFlow
 :::
 
 ::: {.column width="50%" style="text-align: center;"}
@@ -31,6 +31,33 @@ MODELOS DE DEEP LEARNING
 ::: {style="margin-top: 40px; font-size: 0.55em; color: #9B4D4D; text-align: center;"}
 Universidad de Santiago de Chile
 :::
+
+# Contexto
+
+## Aspectos relevantes de la presentación anterior
+
+:::: {.columns}
+
+::: {.column width="40%"}
+![Fases ciclo menstrual](fases_ciclo_4.jpg){#fig-etiqueta fig-align="center"}
+
+:::
+
+::: {.column width="60%"}
+
+::: {style="font-size: 60%;"}
+| Modelo | Precisión | Adaptabilidad |
+|------------------|------------------|------------------|
+| **LSTM** [@khairunisa2025comparison] | **90% – 91.3%** | Excelente. Modela ciclos irregulares. |
+| **CNN 1D** [@khairunisa2025comparison] | **88.9%** | Buena: Identifica patrones clave, pero es inferior a LSTM en secuencias largas. |
+| **ML Clásico** [@harshavardhan2025ai] | **78% – 85.2%** | Baja. Falla ante ciclos irregulares. |
+:::
+
+:::
+
+::::
+
+# Objetivos e hipotesis
 
 ## Objetivos {.smaller}
 
@@ -43,6 +70,10 @@ Universidad de Santiago de Chile
 - Implementar modelos LSTM y CNN 1D para la clasifación de las fases del ciclo menstrual.
 
 - Comparar su desempeño con un modelo tradicional mediante F1-Score y métricas por fase.
+
+## Hipotesis {.smaller}
+
+Una arquitectura híbrida de Deep Learning (1D-CNN + LSTM Many-to-One), que integra el contexto temporal de los ciclos de las usuarias, superará a un modelo clásico de Machine Learning (Random Forest) en la tarea de clasificación multiclase de las fases del ciclo menstrual, logrando un incremento en el Macro F1-Score sobre el conjunto de test.
 
 ## Descripción de los datos {.smaller}
 
@@ -115,9 +146,9 @@ datatable(data, options = list(
 
 2.  Imputación local (**Media y mediana historica**) [@khairunisa2025comparison]: promedio_duracion_ciclo (se recalcula con duracion_ciclo), promedio_duracion_menstruacion (se recalcula con duracion_menstruacion).
 
-3.  Imputación global (**Media global**): intensidad_sangrado_media, duracion_menstruacion, duracion_ciclo, primer_dia_alta_fertilidad, total_dias_alta_fertilidad, total_dias_peak_fertilidad, dia_estimado_ovulacion, duracion_fase_lutea.
+3.  Imputación global (**Media global**) [@logapriya2024optimized]: intensidad_sangrado_media, duracion_menstruacion, duracion_ciclo, primer_dia_alta_fertilidad, total_dias_alta_fertilidad, total_dias_peak_fertilidad, dia_estimado_ovulacion, duracion_fase_lutea.
 
-4.  Algoritmo Predictivo Multivariado (**MICE - Predictive Mean Matching**): edad, imc, intensidad_sangrado_media, promedio_duracion_menstruacion, promedio_duracion_ciclo.
+4.  Algoritmo Predictivo Multivariado (**MICE - Predictive Mean Matching**) [@van2011mice]: edad, imc, intensidad_sangrado_media, promedio_duracion_menstruacion, promedio_duracion_ciclo.
 
 ### Resultado
 
@@ -226,7 +257,7 @@ datatable(df_final, options = list(
 
 ## Análisis exploratorio {.smaller}
 
-Tranformar a base de datos diaria e identificar a que ciclo pertenece cada registro diario.
+Tranformar a base de datos diaria e identificar a que ciclo pertenece cada registro diario. [@clark2018open]
 
 ::: {style="font-size: 45%; overflow-x: auto;"}
 ```{r}
@@ -375,7 +406,33 @@ grafico_desbalance <- ggplot(df_resumen_clases, aes(x = nombre_clase, y = cantid
 print(grafico_desbalance)
 ```
 
-## Análisis exploratorio {.smaller}
+# Metodología e implementación
+
+## Metodología {.smaller}
+
+![Esquema metodológico](esquema.png){#fig-etiqueta fig-align="center"}
+
+## Código red híbrida CNN-1D y LSTM {.smaller}
+
+```{r}
+#| eval: false
+#| echo: true
+
+model = keras_model_sequential(
+  layers = list(
+    keras_input(shape = c(LONGITUD_VENTANA, train_data$num_features)),
+    layer_conv_1d(filters = 16, kernel_size = 2, activation = "relu", padding = "same"),
+    layer_lstm(units = 32, return_sequences = FALSE),
+    layer_dropout(rate = 0.4),
+    layer_dense(units = 16, activation = "relu"),
+    layer_dense(units = 3, activation = "softmax")
+  )
+)
+```
+
+## Estructuración Temporal: Ventanas Deslizantes {.smaller}
+
+Agrupación de datos en bloques de una semana para capturar el contexto fisiológico inmediato. [@gulati2026menstrual]
 
 ```{r}
 # --- GRÁFICO 2: Dinámica temporal y la Ventana de Contexto (LSTM) ---
@@ -483,36 +540,6 @@ grafico_evolucion <- ggplot(ejemplo_ciclo, aes(x = dia_ciclo, y = 1, fill = Fase
 print(grafico_evolucion)
 ```
 
-# Metodología e implementación
-
-## Metodología {.smaller}
-
-![Esquema metodológico](esquema.png){#fig-etiqueta fig-align="center"}
-
-## Red híbrida CNN-1D y LSTM {.smaller}
-
-1. Capa CNN-1D 16 filtros (kernel = 2): Extrae patrones locales y transiciones de corto plazo entre días adyacentes a la ventana tempora.
-
-2. Capa LSTM 32 unidades (many-to-one): Captura la dependencia secuencial a lo largo de los 7 días de contexto histórico para la clasificación diaria.
-
-3. Regularización Dropout (40%) + Dense: Capa de Dropout al 0.4 para mitigar el sobreajuste del oversampling, seguida de capas Densas y activación Softmax (3 clases).
-
-```{r}
-#| eval: false
-#| echo: true
-
-model = keras_model_sequential(
-  layers = list(
-    keras_input(shape = c(LONGITUD_VENTANA, train_data$num_features)),
-    layer_conv_1d(filters = 16, kernel_size = 2, activation = "relu", padding = "same"),
-    layer_lstm(units = 32, return_sequences = FALSE),
-    layer_dropout(rate = 0.4),
-    layer_dense(units = 16, activation = "relu"),
-    layer_dense(units = 3, activation = "softmax")
-  )
-)
-```
-
 ## Entrenamiento de la red {.smaller}
 
 | Parámetro              | Configuración              |
@@ -538,34 +565,36 @@ model = keras_model_sequential(
 
 * **Accuracy Global:** 84,02% | **Loss:** 0,3760
 
+::: {style="font-size: 50%;"}
 | Fase Biológica (Clase) | Precision | Recall | F1-Score |
 | :--- | :---: | :---: | :---: |
 | **F0: Folicular/Menstrual** (0) | 96,73% | 86,45% | **91,30%** |
 | **F1: Ventana Ovulatoria** (1) | 37,38% | 78,95% | **50,74%** |
 | **F2: Fase Lútea** (2) | 96,87% | 82,62% | **89,18%** |
 | **Promedio Global (Macro)** | 76,99% | 82,67% | **77,07%** |
-
-## Validación de resultados {.smaller}
+:::
 
 **Matriz de Confusión Multiclase**
 
+::: {style="font-size: 50%;"}
 | Predicción \ Real | F0 (Folicular) | F1 (Ovulatoria) | F2 (Lútea) | Total |
 | :--- | :---: | :---: | :---: | :---: |
 | **F0 (Folicular)** | <span style="color:#2e7d32; font-weight:bold; background-color:#e8f5e9; padding:2px 6px; border-radius:4px;">3.753</span> | 112 | 15 | **3.880** |
 | **F1 (Ovulatoria)** | 568 | <span style="color:#d84315; font-weight:bold; background-color:#fbe9e7; padding:2px 6px; border-radius:4px;">754</span> | 695 | **2.017** |
 | **F2 (Lútea)** | 20 | 89 | <span style="color:#2e7d32; font-weight:bold; background-color:#e8f5e9; padding:2px 6px; border-radius:4px;">3.376</span> | **3.485** |
 | **Total Real** | **4.341** | **955** | **4.086** | **9.382** |
+:::
 
 ## Comparación de Resultados y Estado del Arte {.smaller}
 
 Al evaluar el desempeño, contrastamos nuestra arquitectura con métodos tradicionales y literatura reciente. Dado el desbalance fisiológico, la métrica de decisión principal es el **Macro F1-Score**.
 
-::: {style="font-size: 45%;"}
+::: {style="font-size: 55%;"}
 | Modelo / Enfoque | Tipo | Accuracy Global | F1 Folicular (F0) | F1 Ovulatoria (F1) | F1 Lútea (F2) | Macro F1-Score |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Calendario Estático (Regla 28 días)** | Regla Fija | 64.2% | 72.1% | 28.5% | 68.0% | **56.2%** |
 | **Random Forest (Nuestro Baseline)** | Tradicional | **87.2%** | 92.0% | 37.1% | **92.1%** | **73.7%** |
-| **Desak et al. (2025) - Decision Tree** | Literatura | 85.2% | - | - | - | **-** |
+| **LSTM**  | [@harshavardhan2025ai] | 90% | - | -  | - | 89% |
+| **CNN 1D** | [@khairunisa2025comparison] | 87.5% | -  | - | 87.5% |  |
 | **Nuestra Red Híbrida (CNN 1D + LSTM)** | **Propuesto** | 84.0% | **91.3%** | **50.7%** | 89.2% | **77.1%** |
 :::
 
@@ -573,25 +602,25 @@ Al evaluar el desempeño, contrastamos nuestra arquitectura con métodos tradici
 
 ## Conclusiones {.smaller}
 
-* **Objetivos Cumplidos:** Se logró desarrollar e implementar exitosamente una arquitectura secuencial (CNN-1D + LSTM) capaz de procesar historiales menstruales diarios.
+* Se logró desarrollar e implementar exitosamente una arquitectura híbrida (CNN-1D + LSTM) capaz de procesar historiales menstruales diarios.
 
-* **Superación del Estado del Arte:** Se demostró que los modelos tradicionales (Random Forest) caen en la "Trampa de la Exactitud", fallando en detectar la ventana ovulatoria (F1 de 37.1%). Nuestra red híbrida aprendió la dependencia temporal, elevando drásticamente esta detección (F1 de 50.7%) y logrando el mejor Macro F1-Score global (77.1%).
+* Se demostró que un modelo tradicional como Random Forest cae en la "Trampa de la Exactitud", fallando en detectar la ventana ovulatoria (F1 de 37.1%). Nuestra red híbrida aprendió la dependencia temporal, elevando esta detección (F1 de 50.7%) y logrando el mejor Macro F1-Score global (77.1%).
 
-* **Valor Clínico:** El uso de Deep Learning permite predecir fases críticas sin depender de calendarios rígidos, adaptándose a la variabilidad biológica real de mujeres con ciclos irregulares.
+* El uso de Deep Learning permite predecir fases adaptándose a la variabilidad biológica real de mujeres con ciclos irregulares.
 
 ## Limitaciones y trabajo futuro {.smaller}
 
-### Limitaciones del Dataset
+### Limitaciones
 
-* **Falta de Biomarcadores Diarios Clave:** La base actual no cuenta con registros continuos de Temperatura Basal (BBT) ni niveles hormonales (LH/FSH), los cuales son fisiológicamente determinantes para anclar el día exacto de la ovulación.
+* La base actual no cuenta con registros continuos de Temperatura Basal (BBT) ni niveles hormonales (LH/FSH), los cuales son fisiológicamente relevantes para determinar el día exacto de la ovulación. [@clark2018open]
 
-* **Naturaleza Autorreportada:** Los datos provienen de registros manuales, lo que introduce ruido y subjetividad humana en variables como "intensidad del sangrado".
+*  Los datos provienen de registros manuales, lo que introduce ruido y subjetividad humana en variables como "intensidad del sangrado".
 
 ### Trabajo Futuro
 
-* Integrar datos continuos provenientes de dispositivos wearables (relojes inteligentes, anillos) que midan variabilidad de la frecuencia cardíaca (HRV) y temperatura de la piel durante el sueño.
+* Integrar datos continuos provenientes de dispositivos wearables (relojes inteligentes, anillos) que midan variabilidad de la frecuencia cardíaca y temperatura de la piel durante el sueño. [@khadse2025systematic]
 
-* Probar mecanismos de Atención (Transformers) para que la red pondere automáticamente qué ciclos históricos son más relevantes para predecir el ciclo actual.
+* Probar mecanismos de Atención (Transformers) [@logapriya2024optimized] para que la red pondere automáticamente qué ciclos históricos son más relevantes para predecir el ciclo actual.
 
 # Referencias {.smaller}
 
